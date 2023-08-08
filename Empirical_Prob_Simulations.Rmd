@@ -1,0 +1,614 @@
+---
+title: "Empirical Probability, Discrete Distributions, Visualizations"
+author: "Ashish Dasu"
+output:
+  html_document:
+    number_sections: yes    
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+In this project we will explore empirical probability using random samples.
+
+# Simulating Experiments
+We will simulate two important experiments: coin tosses and die rolls. We will explore empirical probability of events using random samples.
+
+## Coin Tosses
+Suppose Sarah and Ali toss two coins independently $n$ times the probability that both of them have the same number of heads can be calculated to be $$\left( \frac{1}{2}\right)^{2n} {2n \choose n}$$
+
+### n=2
+Function for coin toss example with sample size of 2.
+```{r}
+sarah_ali_toss_twocoins <- function(){
+  outcomes <- c(0,1)
+  sarah_tosses <- sample(size = 2, 
+                         x = outcomes,
+                         replace = TRUE,
+                         prob = c(0.5, 0.5))
+  ali_tosses <- sample(size = 2, 
+                         x = outcomes,
+                         replace = TRUE,
+                         prob = c(0.5, 0.5))
+  return(sum(sarah_tosses) == sum(ali_tosses))
+  }
+```
+
+Using the coin toss experiment to calculate empirical data. 
+```{r}
+sarah_ali_exp <- replicate(10000, sarah_ali_toss_twocoins())
+mean(sarah_ali_exp) #empirical prob
+
+n <- 3
+(1/2)^(2*n)* choose(2*n, n) #true theoretical probability
+```
+
+```{r}
+x <- 1:10000
+y <- c()
+for(k in x){
+  y <- c(y, mean(sarah_ali_exp[1:k]))
+}
+```
+
+Plotting empirical relative frequency vs number of trials alongside line showing theoretical probability.
+```{r}
+plot(x, y, 
+     type = 'l')
+abline(h = 0.375, 
+       col = 'red')
+```
+
+### n=3
+Same experiment but this time with sample size of 3. 
+```{r}
+sarah_ali_toss_twocoins <- function() {
+  outcomes <- c(0,1)
+  sarah_tosses <- sample(size = 3, 
+                         x = outcomes,
+                         replace = TRUE,
+                         prob = c(0.5, 0.5))
+  ali_tosses <- sample(size = 3, 
+                         x = outcomes,
+                         replace = TRUE,
+                         prob = c(0.5, 0.5))
+  return(sum(sarah_tosses) == sum(ali_tosses))
+}
+
+  x <- 1:10000
+y <- c()
+for(k in x){
+  y <- c(y, mean(sarah_ali_exp[1:k]))
+}
+
+plot(x, y, 
+     type = 'l')
+abline(h = 0.375, 
+       col = 'red')
+```
+
+### General Case
+Function for general case that takes parameter n for sample size.
+```{r}
+# Coin toss function
+# Parameters: n = number of trials
+sarah_ali_toss_twocoins <- function(n) {
+    outcomes <- c(0, 1)
+    sarah_tosses <- sample(size = n,
+                            x = outcomes,
+                            replace = TRUE,
+                            prob = c(0.5, 0.5))
+
+    ali_tosses <- sample(size = n,
+                            x = outcomes,
+                            replace = TRUE,
+                            prob = c(0.5, 0.5))
+    return(sum(sarah_tosses) == sum(ali_tosses))
+}
+
+z <- list(3, 5, 10, 20)
+ep <- c()
+tp <- c()
+j <- 1
+par(mfrow=c(2,2))
+for (n in z) {
+    sarah_ali_exp <- replicate(10000, sarah_ali_toss_twocoins(n))
+    ep <- c(ep, mean(sarah_ali_exp)) #empirical prob
+    tp <- c(tp, (1 / 2)^(2 * n) * choose(2 * n, n)) #true theoretical probability
+    x <- 1:10000
+    y <- c()
+    for (k in x) {
+        y <- c(y, mean(sarah_ali_exp[1:k]))
+    }
+
+    plot(x, y,
+        type = 'l', main=paste0("Probability Both Have Same # Heads, n=", n),
+        ylab="p(same # heads)", xlab="# trials")
+    abline(h = tp[j],
+        col = 'red')
+
+    j <- j + 1
+}
+
+m <- matrix(c(ep, tp), ncol = 4, byrow = TRUE)
+colnames(m) <- c('n=3', 'n=5', 'n=10', 'n=20')
+rownames(m) <- c("Coin Toss Empirical", "Coin Toss Theoretical")
+print(m)
+```
+
+## Die Rolls
+### Fair Die
+Experiment calculating sum of numbers on two independently rolled dice.
+```{r}
+# Parameters: fair = int. 0: one fair, one unfair die. Else, two fair dice
+two_die <- function(fair) {
+    outcomes <- c(1, 2, 3, 4, 5, 6)
+    if (fair == 0) {
+        p1 <- c(.1, .5, .1, .1, .1, .1)
+        p2 <- c(1/6, 1/6, 1/6, 1/6, 1/6, 1/6)
+        roll1 <- sample(size = 1,
+                        x = outcomes,
+                        replace = TRUE,
+                        prob = p1)
+        roll2 <- sample(size = 1,
+                        x = outcomes,
+                        replace = TRUE,
+                        prob = p2)
+        rolls <- c(roll1, roll2)
+    }
+    else {
+        p <- c(1/6, 1/6, 1/6, 1/6, 1/6, 1/6)
+        rolls <- sample(size = 2,
+                        x = outcomes,
+                        replace = TRUE,
+                        prob = p)
+    }
+
+    return(sum(rolls))
+}
+```
+
+
+Calling dice roll function to simulate rolling two dice 10000 times.
+```{r}
+# two_die(1) for fair die
+sum_die <- replicate(10000, two_die(1))
+```
+
+Comparing empirical probabilities of getting dice sums of 2, 3, 4, ..., 12 with their theoretical probabilites.
+```{r}
+sum_each <- c(sum(sum_die == 2), sum(sum_die == 3), sum(sum_die == 4), sum(sum_die == 5), sum(sum_die == 6), sum(sum_die == 7), sum(sum_die == 8), sum(sum_die == 9), sum(sum_die == 10), sum(sum_die == 11), sum(sum_die == 12))
+
+m <- matrix(c(sum_each/10000, c(1/36, 2/36, 3/36, 4/36, 5/36, 6/36, 5/36, 4/36, 3/36, 2/36, 1/36)), ncol = 11, byrow = TRUE)
+colnames(m) <- c('sum = 2', '3', '4', '5', '6', '7', '8','9', '10', '11', '12')
+rownames(m) <- c("Fair Die Empirical Prob", "Fair Die Theoretical Prob")
+print(m)
+```
+
+Plotting empirical relative frequency of getting a two dice sum of 4 as a function of number of trials.
+```{r}
+plot(1:10000, cumsum(sum_die == 4)/100,
+    type = "l", xlab = "# Trials", ylab = "Relative Frequency (%)",
+    main = "Relative Frequency of Two Fair Die Sum Being 4", col='Steel Blue')
+```
+
+
+### Unfair Die
+Repeating the above experiment in the case when one of the die is biased to land on 2 with probability 0.5 and land with probability 0.1 of the other sides. The other die is fair. 
+```{r}
+# Same function used for both fair and unfair die rolls.
+two_die <- function(fair) {
+    outcomes <- c(1, 2, 3, 4, 5, 6)
+    if (fair == 0) {
+        p1 <- c(.1, .5, .1, .1, .1, .1)
+        p2 <- c(1/6, 1/6, 1/6, 1/6, 1/6, 1/6)
+        roll1 <- sample(size = 1,
+                        x = outcomes,
+                        replace = TRUE,
+                        prob = p1)
+        roll2 <- sample(size = 1,
+                        x = outcomes,
+                        replace = TRUE,
+                        prob = p2)
+        rolls <- c(roll1, roll2)
+    }
+    else {
+        p <- c(1/6, 1/6, 1/6, 1/6, 1/6, 1/6)
+        rolls <- sample(size = 2,
+                        x = outcomes,
+                        replace = TRUE,
+                        prob = p)
+    }
+
+    return(sum(rolls))
+}
+```
+
+```{r}
+# two_die(0) this time for unfair case
+sum_die <- replicate(10000, two_die(0))
+```
+
+When using one unfair die, calculating empirical probabilities of getting dice sums of 2, 3, 4, ..., 12 with their theoretical probabilites.
+```{r}
+sum_each <- c(sum(sum_die == 2), sum(sum_die == 3), sum(sum_die == 4), sum(sum_die == 5), sum(sum_die == 6), sum(sum_die == 7), sum(sum_die == 8), sum(sum_die == 9), sum(sum_die == 10), sum(sum_die == 11), sum(sum_die == 12))
+#(.1,.5,.1,.1,.1,.1)
+m <- matrix(c(sum_each/10000, c(0.1 * 1/6, 0.5 * 1/6 + 0.1 * 1/6, 0.5 * 1/6 + .2 * 1/6, 0.5 * 1/6 + .3 * 1/6, 0.5 * 1/6 + .4 * 1/6, 0.5 * 1/6 + .5 * 1/6, 0.5 * 1/6 + .4 * 1/6, .4 * 1/6, .3 * 1/6, .2 * 1/6, .1 * 1/6)), ncol = 11, byrow = TRUE)
+colnames(m) <- c('sum = 2', '3', '4', '5', '6', '7', '8','9', '10', '11', '12')
+rownames(m) <- c("Unfair Die Empirical Prob", "Unfair Die Theoretical Prob")
+print(m)
+```
+
+When using one unfair die, plotting empirical relative frequency of getting a two dice sum of 4 as a function of number of trials.
+```{r}
+plot(1:10000, cumsum(sum_die == 4)/100,
+    type = "l", xlab = "# Trials", ylab = "Relative Frequency (%)",
+    main = "Relative Frequency of One Fair and One Unfair Die Sum Being 4", col='Red')
+```
+
+
+# Balls and Cells
+If $n$ indistinguishable balls are placed randomly into $n$ cells, the probability that exactly one cell remains empty is calculated to be $${n\choose 2} \frac{n!}{n^n}.$$ 
+\\
+
+"exactly_one_cell" takes input $n$, and performs one run of this experiment. 
+```{r}
+exactly_one_cell <- function(n) {
+    e <- sample(1:n, n, replace = TRUE)
+    return(length(unique(e)) == (n - 1))
+}
+```
+
+
+Calculating the empirical probabilities for each of the following values of $n: 3, 6, 9, 15$, and comparing them with theoretical probabilites.
+```{r}
+n <- c(3,6,9,15)
+means <- c()
+theoretical_value <- c()
+
+for (i in n) {
+    balls_to_cell_exp <- replicate(100000, exactly_one_cell(i))
+    means <- c(means, mean(balls_to_cell_exp))
+    theoretical_value <- c(theoretical_value, choose(i, 2)*factorial(i)/(i^i))
+}
+
+m <- matrix(c(means, theoretical_value), ncol = 4, byrow = TRUE)
+colnames(m) <- c('n=3', 'n=6', 'n=9', 'n=15')
+rownames(m) <- c("Balls Empirical Prob", "Balls Theoretical Prob")
+print(m)
+```
+
+
+# Visualizing Discrete Distributions
+
+## Binomial distribution.
+We will plot the density function for the binomial distribution Bin(n, p).
+Note: 
+1) The values for this random variable are 0, 1, 2, ..., n.
+2) The density plot will have a bar of height P(X=k), at the point 'k' on the x-axis. 
+3) Plot includes vertical line at the expected value of Bin(n,p).
+
+plot_binom takes input values: n and p, and returns the density plot of Bin(n,p). 
+
+
+```{r}
+plot_binom <- function(n, p) {
+    x <- dbinom(0:n, size = n, p=p)
+    title <- paste("Binomial Density: p = ", p)
+    plot(type='h', x, ylab="relative frequency", main=title, lwd=5, col='orange')
+    abline(v = n*p, col = 'red', lwd = 4)
+}
+```
+
+
+Binomial density plots for n=40 and p: 0.05, 0.1, 0.4, 0.6, 0.9, 0.95. 
+
+```{r}
+par(mfrow=c(3,2))
+for (i in c(.05, .1, .4, .6, .9, .95)) {
+    plot_binom(40, i)
+}
+```
+
+Some observations:
+As p approaches .5, plot appears symmetrical.
+Right skew when p<.5. Left skew when p>.5
+
+
+## Poisson Distribution.
+We will plot the density function for the Poison distribution Pois(mu).
+Note: 
+1) The values for this random variable are: 0, 1, 2, 3, .... 
+2) The density plot will have a bar of height P(X=k), at the point 'k' on the x-axis.
+3) Since most of the densities will be concentrated at lower values of k, we will fix n = 100, when drawing the density plots. 
+3) Plot includes a vertical line at the expected value of Pois(mu).
+
+plot_pois takes input value mu and returns the density plot of Pois(mu).
+
+```{r}
+n <- 100 
+plot_pois <- function(mu){
+  x <- 0:n
+  pois <- dpois(x, lambda = mu)
+  mu_X <- mu
+  plot(x, pois, type = "h", lwd = 5,
+       main = paste("Poisson density: mu = ", mu),
+       xlab = "x", ylab = "P(X=x)")
+  abline(v = mu_X, col = 'red', lwd = 4)
+}
+```
+
+Poisson density plots for mu: 0.5, 1, 5, 8, 20, 50
+
+```{r}
+par(mfrow=c(3,2))
+for (i in c(.5, 1, 5, 8, 20, 50)) {
+    plot_pois(i)
+}
+```
+
+Observing that for large values of mu:
+The density plot for poisson given lambda=5 and binomial density given p=.05 look very similar
+This makes sense since mu=n*p=100*.05=5. The parameters of these distributions are equal.
+
+
+plot_binom(100, 0.05) and plot_pois(5) in the same frame
+
+```{r}
+par(mfrow = c(2,1))
+plot_binom(100, 0.05)
+plot_pois(5)
+```
+
+Observations:
+The density plot for poisson given lambda=5 and binomial density given p=.05 look very similar
+This makes sense since mu=n*p=100*.05=5. The parameters of these distributions are equal.
+
+
+# Visualizing Continuous Distributions
+## Normal Distibution
+
+### Fixed mean, varying standard deviation
+### Plotting Densities
+Setting $\mu = 5$. For values of $\sigma$: $0.2, 0.4, 0.8, 1, 1.3, 1.8, 2$, plotting the densities of $N(\mu, \sigma)$.
+
+```{r}
+nsd <- c(.4,.8,1,1.3,1.8)
+
+par(mfrow=c(1,1))
+x <- 1:10000
+curve(dnorm(x, mean=5, sd=.2), from=0, to=10, main="Normal Density (mean=5, sd=.2,.4,.8,1,1.3,1.8,2", col='blue')
+for (s in nsd) {
+    curve(dnorm(x, mean=5, sd=s), from=0, to=10, main="Normal Density (mean=5, sd=.2,.4,.8,1,1.3,1.8,2", col='red', add=TRUE)
+}
+curve(dnorm(x, mean=5, sd=2), from=0, to=10, main="Normal Density (mean=5, sd=.2,.4,.8,1,1.3,1.8,2", col='blue', add=TRUE)
+```
+Observation:
+With mean constant, as standard deviation increases, the normal density curve gets flatter and wider.
+
+#### Plotting Cummulative Distribution Functions
+Setting $\mu = 5$. Plotting the cumulative distribution function of $N(\mu, \sigma)$ for $\sigma$ = $0.2, 0.4, 0.8, 1, 1.3, 1.8, 2$.
+```{r}
+nsd <- c(.4,.8,1,1.3,1.8)
+
+par(mfrow=c(1,1))
+x <- 1:10000
+curve(pnorm(x, mean=5, sd=.2), from=0, to=10, ylab= "probability density", main="Normal CDF (mean=5, sd=.2,.4,.8,1,1.3,1.8,2", col='blue')
+for (s in nsd) {
+    curve(pnorm(x, mean=5, sd=s), from=0, to=10, main="Normal CDF (mean=5, sd=.2,.4,.8,1,1.3,1.8,2", col='red', add=TRUE)
+}
+curve(pnorm(x, mean=5, sd=2), from=0, to=10, main="Normal CDF (mean=5, sd=.2,.4,.8,1,1.3,1.8,2", col='blue', add=TRUE)
+```
+What information does the point of intersection of two cdfs give us?
+The cdf plots intersect at x=mean and prob density=.5. This is where the peak probability is.
+
+### Varying mean, fixed standard deviation
+#### Plotting Densities 
+Setting $\sigma = 0.4$. Plotting the densities of $N(\mu, \sigma)$ for values of $\mu$ given by $-1, -0.5, 0, 0.4, 0.9, 2.5, 4$.
+```{r}
+means <- c(-0.5,0,0.4,0.9,2.5)
+
+par(mfrow=c(1,1))
+x <- 1:10000
+curve(dnorm(x, mean=-1, sd=.4), from=-3, to=7, ylab="probability values", main="Normal Density (mean=−1,-0.5,0,0.4,0.9,2.5,4, sd=.4)", col='blue')
+for (m in means) {
+    curve(dnorm(x, mean=m, sd=.4), col='red', add=TRUE)
+}
+curve(dnorm(x, mean=4, sd=.4), col='blue', add=TRUE)
+```
+
+#### Plotting Cummulative Distribution Functions
+Plotting the cumulative distribution functions of $N(\mu, \sigma)$ for $\sigma = 0.4$ and $\mu$ = $-1, -0.5, 0, 0.4, 0.9, 2.5, 4$.
+```{r}
+means <- c(-0.5,0,0.4,0.9,2.5)
+
+par(mfrow=c(1,1))
+x <- 1:10000
+curve(pnorm(x, mean=-1, sd=.4), from=-3, to=9, ylab="probability density", main="Normal CDF (mean=−1,-0.5,0,0.4,0.9,2.5,4, sd=.4)", col='blue')
+for (m in means) {
+    curve(pnorm(x, mean=m, sd=.4), col='red', add=TRUE)
+}
+curve(pnorm(x, mean=4, sd=.4), main="Normal CDF (mean=5, sd=.2,.4,.8,1,1.3,1.8,2", col='blue', add=TRUE)
+```
+
+
+## Gamma Distibution
+Plotting the Gamma distibution for different shapes and scales.
+
+### $\alpha =1$ , varying scales
+Plotting the densities of $Gamma(\alpha, \beta)$ in a single plot for $\alpha = 1$ and $\beta$ = $0.2, 0.6, 1, 1.5, 2$.
+
+```{r}
+betas <- c(0.6,1,1.5)
+
+par(mfrow=c(1,1))
+x <- 1:10000
+curve(dgamma(x, shape=1, rate=.2), from=0, to=20, ylim=c(0,1), ylab="probability values", main="Gamma Distribution (alpha=1, beta=.2,0.6,1,1.5,2)", col='blue')
+for (b in betas) {
+    curve(dgamma(x, shape=1, rate=b), col='red', add=TRUE)
+}
+curve(dgamma(x, shape=1, rate=2), col='blue', add=TRUE)
+```
+
+### $\alpha =0.6$ , varying scales
+Plotting the densities of $Gamma(\alpha, \beta)$ in a single plot for $\alpha = 0.6$ and $\beta$ = $0.2, 0.6, 1, 1.5, 2$.
+```{r}
+betas <- c(0.6,1,1.5)
+
+par(mfrow=c(1,1))
+x <- 1:10000
+curve(dgamma(x, shape=.6, rate=.2), from=0, to=10, ylim=c(0,1), ylab="probability values", main="Gamma Distribution (alpha=.6, beta=.2,0.6,1,1.5,2)", col='blue')
+for (b in betas) {
+    curve(dgamma(x, shape=.6, rate=b), col='red', add=TRUE)
+}
+curve(dgamma(x, shape=.6, rate=2), col='blue', add=TRUE)
+```
+
+### $\alpha = 2$ , varying scales
+Plotting the densities of $Gamma(\alpha, \beta)$ in a single plot for $\alpha = 2$ and $\beta$ = $0.2, 0.6, 1, 1.5, 2$.
+```{r}
+betas <- c(0.6,1,1.5)
+
+par(mfrow=c(1,1))
+x <- 1:10000
+curve(dgamma(x, shape=2, rate=.2), from=0, to=10, ylim=c(0,.8), ylab="probability values", main="Gamma Distribution (alpha=2, beta=.2,0.6,1,1.5,2)", col='blue')
+for (b in betas) {
+    curve(dgamma(x, shape=2, rate=b), col='red', add=TRUE)
+}
+curve(dgamma(x, shape=2, rate=2), col='blue', add=TRUE)
+```
+
+### $\alpha = 5$ , varying scales
+Plotting the densities of $Gamma(\alpha, \beta)$ in a single frame for $\alpha = 5$ and $\beta$ = $0.2, 0.6, 1, 1.5, 2$.
+```{r}
+betas <- c(0.6,1,1.5)
+
+par(mfrow=c(1,1))
+x <- 1:10000
+curve(dgamma(x, shape=5, rate=.2), from=0, to=20, ylim=c(0,.5), ylab="probability values", main="Gamma Distribution (alpha=5, beta=.2,0.6,1,1.5,2)", col='blue')
+for (b in betas) {
+    curve(dgamma(x, shape=5, rate=b), col='red', add=TRUE)
+}
+curve(dgamma(x, shape=5, rate=2), col='blue', add=TRUE)
+```
+
+## Beta Distribution. 
+Plotting the probability density function of the Beta distribution in a single plot.
+(1) $\alpha = 1$, $\beta = 3$
+(2) $\alpha = 5$, $\beta = 1$
+(3) $\alpha = 0.3$, $\beta = 0.6$
+(4) $\alpha = 2$, $\beta = 2$
+(5) $\alpha = 1$, $\beta = 1$
+
+```{r}
+par(mfrow=c(1,1))
+x <- 1:10000
+
+curve(dbeta(x, 1, 3), , lwd=1.5, from=0, to=1, ylim=c(0,3), ylab="probability values", main="Gamma Distribution(alpha=2, beta=.2,0.6,1,1.5,2)", col='#206491')
+text(.5, 2.9, "alpha=1, beta=3", cex = .75, col='#206491')
+
+curve(dbeta(x, 5, 1), col='#ff828b', lwd=1.5, add=TRUE)
+text(.5, 2.8, "alpha=5, beta=1", cex = .75, col='#ff828b')
+
+curve(dbeta(x, .3, .6), col='#cc222b', , lwd=1.5, add=TRUE)
+text(.5, 2.7, "alpha=.3, beta=.6", cex = .75, col='#cc222b')
+
+curve(dbeta(x, 2, 2), col='#cff800', lwd=1.5, add=TRUE)
+text(.5, 2.6, "alpha=2, beta=2", cex = .75, col='#cff800')
+
+curve(dbeta(x, 1, 1), col='#faa41b', lwd=1.5, add=TRUE)
+text(.5, 2.5, "alpha=1, beta=1", cex = .75, col='#faa41b')
+```
+
+
+
+# Simulating the Monty-Hall Problem (Optional)
+Understanding the solution to the popular Monty-Hall problem through simulations of the original problem as well as some interesting variations.
+
+## Monty-Hall Three doors 
+Running a simulation to check that the probability of winning increases to 2/3 if we switch doors at step two in the regular 3-door Monty-Hall problem. 
+
+```{r}
+monty_3doors_noswitch <- function(){
+    possible <- sample(c(0, 0, 1), 3)
+    choice <- sample(1:3, 1)
+    return(ifelse(possible[choice]==1, 1, 0))
+}
+
+monty_3doors_switch <- function(){
+    possible <- sample(c(0, 0, 1), 3)
+    choice <- sample(1:3, 1)
+    return(ifelse(possible[choice]!=1, 1, 0))
+}
+
+```
+
+Storing the empirical results of winning probability to compare with theory of the original 3 door problem at the end of this exercise.
+```{r}
+mns <- replicate(10000, monty_3doors_noswitch())
+ms <- replicate(10000, monty_3doors_switch())
+```
+
+
+
+## Monty-Hall with Ten doors.
+Repeating the Monty Hall experiment now with 10 doors. Recall the game is as follows: 
+Step 1: you choose one door at random.
+Step 2: Monty opens 8 (out of 9 doors) that do not have the prize. 
+Step 3: you either switch or don't switch. 
+
+```{r}
+monty_10doors_noswitch <- function(){
+    possible <- sample(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1), 10)
+    choice <- sample(1:10, 1)
+    return(ifelse(possible[choice]==1, 1, 0))
+}
+
+monty_10doors_switch <- function(){
+    possible <- sample(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1), 10)
+    choice <- sample(1:10, 1)
+    return(ifelse(possible[choice]!=1, 1, 0))
+}
+```
+
+Storing the empirical results of winning probability to compare with theory for 10-door variation at the end of this exercise.
+```{r}
+m10ns <- replicate(10000, monty_10doors_noswitch())
+m10s <- replicate(10000, monty_10doors_switch())
+```
+
+
+## Monty-Hall 10-doors (modified).
+Considering the following modified Monty-Hall game with 10 doors. 
+Step 1: you choose one door at random.
+Step 2: Monty opens 7 (out of 9 doors) that do not have the prize. 
+Step 3: you either stick with your original choice, or choose between one of the two unopened doors. 
+
+```{r}
+monty_10doors_mod_noswitch <- function(){
+    possible <- sample(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1), 10)
+    choice <- sample(1:10, 1)
+    return(ifelse(possible[choice]==1, 1, 0))
+}
+
+monty_10doors_mod_switch <- function(){
+    possible <- sample(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1), 10)
+    choice <- sample(1:10, 1)
+    possible2 <- sample(c(0, 1), 2)
+    choice2 <- sample(1:2, 1)
+    r <- ifelse(possible2[choice2]==1, 1, 0)
+    return(ifelse(possible[choice]!=1, r, 0))
+}
+```
+
+Storing the empirical results of winning probability to compare with theory for the modified 10-door problem.
+Outputting a table comparing the empirical and theoretical results for all 3 Monty-Hall variations we have simulated.
+```{r}
+m10mns <- replicate(10000, monty_10doors_mod_noswitch())
+m10ms <- replicate(10000, monty_10doors_mod_switch())
+
+# Table with empirical vs theoretical probabilities for all 3 variations of this experiment.
+m <- matrix(c(mean(mns), mean(ms), mean(m10ns), mean(m10s), mean(m10mns), mean(m10ms), 1/3, 2/3, 1/10, 9/10, 1/10, 9/20), ncol = 6, byrow = TRUE)
+colnames(m) <- c('3noswitch', '3switch', '10noswitch', '10switch', 'mod10noswitch', 'mod10switch')
+rownames(m) <- c("Monty Empirical Prob", "Monty Theoretical Prob")
+print(m)
+```
