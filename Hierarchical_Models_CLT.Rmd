@@ -1,0 +1,319 @@
+---
+title: "Hierarchical Models, Random Samples, Statistics, Sampling Distributions, and the Central Limit Theorem"
+author: "Ashish Dasu"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes  
+  pdf_document:
+    toc: yes
+---
+
+The Central Limit Theorem and the properties of estimators are some of the most powerful statistical concepts/tools. Let us use our simulation tools to visualize the theory behind them.
+
+# Heirarchichal Models
+$$ T \sim \text{Gamma}(\alpha = 10, \beta = 4), \quad Y|T \sim \text{Pois}(T)$$
+Function Y models the random variable $Y$ and takes input values $\alpha$ and $\beta$.
+
+```{r}
+Y <- function(alpha, beta) {
+  T <- rgamma(1, shape = alpha, rate = beta)
+  Y <- rpois(1, lambda = T)
+  return(Y)
+}
+```
+
+Using the replicate function to get 10000 values of the random variable
+$Y$ and storing these values in 'y_empirical'
+
+```{r}
+alpha <- 10
+beta <- 4
+y_empirical <- replicate(10000, Y(alpha, beta))
+```
+
+Using the 'hist' function to calculate the empirical distribution of $Y$.
+
+```{r}
+hist(breaks=(min(y_empirical-.5):max(y_empirical+.5)), y_empirical,col = "green", xlab = "Y", ylab = "Frequency", main = "Empirical Prob Distribution of Y")
+```
+
+Now getting 10000 random values from the appropriate negative binomial
+distribution, and storing these in the variable 'y_theoretical'. Using the
+'qqplot' function to compare the quantiles of 'y_empirical' to those of
+'y_theoretical'.
+
+```{r}
+y_theoretical <- rnbinom(10000, size=10, prob=4/5)
+
+qqplot(y_theoretical, y_empirical,ylab = "Empirical Quantiles", xlab = "Theoretical Quantiles", main = "QQ Plot Empirical vs Theoretical NegBinom", col='red')
+abline(0,1)
+```
+```{r}
+# We see that the quantiles are quite similar, thus both distributions are approximately the same.
+```
+
+# Markov's and Chebychev's Bounds.
+Given a random variable $X$ with mean $\mu$ and variance $\sigma^2$, we have Markov's bound given as (for $a >0$)
+$$ P(X\ge a) \le \frac{\mu}{a},$$
+and Chebychev's bound given by (for $k>0$):
+$$ P(|X-\mu|\ge k ) \le \frac{\sigma^2}{k^2}.$$
+Functions "markov" and "chebychev" take relevant inputs ($a, \mu$ for Markov and $k, \sigma^2$ for Chebychev) and output the relevant value of their bounds. 
+```{r}
+markov <- function(alpha, mu) {
+    return(mu/alpha)
+}
+
+chebychev <- function(k, var) {
+    return(var/k^2)
+}
+
+colors <- c('blue', 'green', 'red', 'purple', 'steelblue', 'maroon', 'turquoise', 'magenta', 'orange', 'navy', 'darkgreen')
+```
+
+## Normal distribution
+For values of $a\in (14, 22)$ plotting the true value of $P(X\ge a)$ and the Markovs bound on the same plot ($x$-axis will be $(14, 22)$) when $X\sim N(\mu = 18, \sigma = 1.5)$. 
+
+```{r}
+X <- c()
+plot(x=NULL, xlim = c(14,22), y=NULL, ylim = c(0,1), main='Normal Prob: Markov Bounds', xlab='a', ylab='P(X>=a)', col='black')
+
+for (i in 14:22) {
+    abline(lwd=1.5, h=markov(i, 18), col=colors[i-13])
+    X <- c(X, (1 - pnorm(i, mean=18, sd=1.5)))
+}
+points(type='b', x=14:22, y=X, bg=colors, col=colors, pch=25)
+```
+For values of $k\in (0,5)$ plotting the true value of $P(|X-\mu_X|\ge k)$ and the Chebychev's bound, on the same plot ($x$-axis will be $(0,5)$) when $X\sim N(\mu = 18, \sigma = 1.5)$.
+```{r}
+plot(x=NULL, xlim = c(0,5), y=NULL, ylim = c(0,2.5), main='Normal Prob: Chebychev Bounds', xlab='k', ylab='P(|X-mu|>=k)', col='black')
+
+Z <- c()
+for (k in 0:5) {
+    abline(lwd=2, lty='dashed', h=chebychev(k, 1.5^2), col=colors[k+1])
+    Z <- c(Z, (1 - pnorm(k, mean=0, sd=1.5) + pnorm(-k, mean=0, sd=1.5)))
+}
+
+points(type='b', x=0:5, y=Z, bg=colors, col=colors, pch=21)
+```
+
+## Exponential Distribution
+For values of $a\in (0, 5)$, plotting the true value of $P(X\ge a)$ and the Markovs bound on the same plot ($x$-axis will be $(0, 5)$) when $X\sim \text{Exp}(\lambda = 2)$. 
+
+```{r}
+plot(x=NULL, xlim = c(0,5), y=NULL, ylim = c(0,1), main='Exponential Prob: Markov Bounds', xlab='a', ylab='P(X>=a)', col='black')
+
+X <- c()
+for (i in 0:5) {
+    abline(lwd=1.5, h=markov(i, 1), col=colors[i+1])
+    X <- c(X, 1 - pexp(i, rate=2))
+}
+points(type='b', x=0:5, y=X, bg=colors, col=colors, pch=25)
+```
+For values of $k\in (0,5)$, plotting the true value of $P(|X-\mu_X|\ge k)$ and the Chebychev's bound, on the same plot ($x$-axis will be $(0,5)$) when $X\sim \text{Exp}(\lambda = 2)$.
+```{r}
+plot(x=NULL, xlim = c(0,5), y=NULL, ylim = c(0,1), main='Exponential Prob: Chebychev Bounds', xlab='k', ylab='P(|X-mu|>=k)', col='black')
+
+Z <- c()
+for (k in 0:5) {
+    abline(lwd=2, lty='dashed', h=chebychev(k, .5^2), col=colors[k+1])
+    Z <- c(Z, (1 - pexp(k, rate=2) + pexp(-k, rate=2)))
+}
+
+points(type='b', x=0:5, y=Z, bg=colors, col=colors, pch=21)
+```
+
+
+
+
+# Random Samples
+## Normal Distibution
+Considering the Normal distribution $N(\mu = 5, \sigma = 1.2)$. We will get random samples from this distribution and check out the histograms for each of these samples. We expect that as the sample size increases, the sample distribution will provide an increasingly improved approximation of the the true distribution. 
+
+### Density of $N(\mu, \sigma)$.
+Plotting the density curve of $N(\mu, \sigma)$,
+```{r}
+x <- 1:10000
+curve(dnorm(x, mean=5, sd=1.2), from=0, to=10, lwd=2, main="N(5,1.2) Density Curve")
+```
+
+### Sample distributions
+For the sample sizes $4, 7, 10, 15, 20, 30, 40, 80, 1000$ getting random samples of respective size, and plotting the histograms for each of these samples. 
+
+```{r}
+par(mfrow=c(3,3))
+for (n in c(4,7,10,15,20,30,40,80,1000)) {
+    hist(rnorm(n,mean=5,sd=1.2), main=paste0("Prob Density of X~N(5, 1.2) for Sample of Size ", n), xlab="X", ylab="frequency", col = 'goldenrod')
+}
+```
+
+```{r}
+# Once again, as sample size increases, empirical histogram approaches that of gamma distribution
+```
+
+
+## Gamma Distribution
+Considering the Gamma distribution $\text{Gamma}(\alpha = 2, \beta = 1.5)$. We will get random samples from this distribution and check out the histograms for each of these samples. We expect that as the sample size increases, the sample distribution will provide an increasingly improved approximation of the the true distribution. 
+
+### Density of $\text{Gamma}(\alpha = 2, \beta = 1.5)$.
+Plotting the density curve of $\text{Gamma}(\alpha = 2, \beta = 1.5)$,
+```{r}
+x <- 1:10000
+curve(dgamma(x, shape=2, scale=1.5), from=0, to=20, lwd=2, main="Gamma(2,1.5) Density Curve")
+```
+
+### Sample distributions
+For the sample sizes $4, 7, 10, 15, 20, 30, 40, 80, 1000$ getting random samples of respective size, and plotting the histograms for each of these samples. 
+
+```{r}
+par(mfrow=c(3,3))
+for (n in c(4,7,10,15,20,30,40,80,1000)) {
+    hist(rgamma(n, shape=2, scale=1.5), main=paste0("Prob Density of X~Gamma(2,1.5) for Sample of Size ", n), xlab="X", ylab="frequency", col = 'forestgreen')
+}
+```
+
+```{r}
+# As sample size increases, empirical histogram approaches that of gamma distribution
+```
+
+# Sampling Distributions 
+Given an ordered random sample of size 15. Writing functions 'order_1, order_3, order_15' that take input a sample 'samp' and calculate the 1st smallest, 3rd smallest, and 15th smallest entry in 'samp'.
+Instead of ordering a random sample in each of these functions, all usages of these functions order the relevant samples before passing it.
+```{r}
+order_1 <- function(samp) {
+    return(samp[1,])
+}
+
+order_3 <- function(samp) {
+    return(samp[3,])
+}
+
+order_15 <- function(samp) {
+    return(samp[15,])
+}
+
+# For question at the end
+order_13 <- function(samp) {
+    return(samp[13,])
+}
+
+order_14 <- function(samp) {
+    return(samp[14,])
+}
+```
+
+
+## Order Statistics
+Suppose we have a sample of size 15 coming from the uniform discrete distribution on the set $\{1, 2, 3, 4, 5\}$.
+Use the functions 'order_1, order_3, order_15' and the replicate command to calculate the empirical sampling distribution of the given order statistics. 
+```{r}
+samp_sorted <- function() {
+   s <- replicate(1000, sample(c(1,2,3,4,5), size=15, replace=TRUE))
+    for (i in 1:1000) {
+     s[,i] <- sort(s[,i])
+    }
+   return(s)
+}
+
+samp <- samp_sorted()
+
+par(mfrow=c(2,3))
+hist(order_1(samp), breaks=c(0,1,2,3,4,5), col=colors[4], main="Empirical Dist: order_1")
+hist(order_3(samp), breaks=c(0,1,2,3,4,5), col=colors[8], main="Empirical Dist: order_3")
+hist(order_13(samp), breaks=c(0,1,2,3,4,5), col=colors[7], main="Empirical Dist: order_13")
+hist(order_14(samp), breaks=c(0,1,2,3,4,5), col=colors[5], main="Empirical Dist: order_14")
+hist(order_15(samp), breaks=c(0,1,2,3,4,5), col=colors[6], main="Empirical Dist: order_15")
+```
+
+Comparing these distributions to the the true theoretical distributions calculated using their moment generating functions.
+```{r}
+# We know that the order statistic is a beta distributed random variable. Let us plot the theoretical distributions
+r1 <- replicate(10000, 5*{mean(rbeta(15, 1, 15))})
+r3 <- replicate(10000, 5*{mean(rbeta(15, 3, 13))})
+r15 <- replicate(10000, 5*{mean(rbeta(15, 15, 1))})
+r13 <- replicate(10000, 5*{mean(rbeta(15, 13, 3))})
+r14 <- replicate(10000, 5*{mean(rbeta(15, 14, 2))})
+
+par(mfrow=c(2,3))
+hist(r1, breaks=c(0,1,2,3,4,5), col=colors[4], main="Theoretical Dist: order_1")
+hist(r3, breaks=c(0,1,2,3,4,5), col=colors[8], main="Theoretical Dist: order_3")
+hist(r13, breaks=c(0,1,2,3,4,5), col=colors[7], main="Theoretical Dist: order_13")
+hist(r14, breaks=c(0,1,2,3,4,5), col=colors[5], main="Theoretical Dist: order_14")
+hist(r15, breaks=c(0,1,2,3,4,5), col=colors[6], main="Theoretical Dist: order_15")
+```
+
+```{r}
+# Empirical distributions of order_13, order_14, and order_15 are reflections about the line x=5/2 of order_3, order_2, and order_1 respectively.
+```
+## Central Limit Theorem
+### Exponential Distribution
+Suppose we are working with a population that has the exponential distibution with $\lambda = 2$. 
+
+Using the replicate function to get the histograms for the sampling distribution of the sample mean when working with sample sizes $n = 1, 2, 3, 4, 15, 500$.
+
+```{r}
+samp_sizes  <- c(1, 2, 3, 4, 15, 500, 1000)
+
+par(mfrow=c(2,2))
+for(size in samp_sizes){
+  replicates <- replicate(10000, {
+    mean(rexp(size, rate = 5))
+  })
+  hist(replicates, breaks = 100,
+       main = paste("Samp Dist for Exp, samp size =", size ))
+}
+```
+
+```{r}
+# Distribution approaches normal as sample size increases.
+```
+
+### Discrete Uniform distibution
+
+Suppose we are working with the discrete uniform random variable taking values $\{1, 2, 3, 4, 5, 6\}$.
+```{r}
+# Takes input "n" and returns a random sample of size "n" from discrete uniform distribution
+disc_samp <- function(n) {
+    s <- sample(c(1,2,3,4,5,6), size=n, replace=TRUE)
+    r <- replicate(10000, s)
+    return(r)
+}
+```
+
+Using the "disc_samp" function and the replicate function to to get the histograms for the sampling distribution of the sample mean when working with sample sizes $n = 1, 2, 3, 4, 15, 500$.
+```{r}
+samp_sizes <- c(1, 2, 3, 4, 15, 500)
+par(mfrow=c(3,2))
+for(n in samp_sizes){
+    hist(disc_samp(n), breaks=c(0,1,2,3,4,5,6), col="coral",
+        main = paste("Samp Dist for Discrete Uniform, samp size =", n))
+}
+```
+
+```{r}
+# Distribution approaches uniformity as sample size increases.
+```
+
+## Continuous Uniform distibution
+
+Suppose we are working with the Continuous uniform random variable taking values on $(0,1)$.
+
+```{r}
+# Takes input "n" and returns a random sample of size "n" from continuous uniform distribution.
+cont_uni_samp <- function(n) {
+    r <- replicate(10000, mean(runif(n,0,1)))
+    return(r)
+}
+```
+
+Using the "cont_uni_samp" function and the replicate function to to get the histograms for the sampling distribution of the sample mean when working with sample sizes $n = 1, 2, 3, 4, 15, 500$.
+```{r}
+par(mfrow=c(3,2))
+for(n in samp_sizes) {
+    hist(cont_uni_samp(n), breaks=100, main = paste("Samp Dist for Continuous Uniform Distribution, samp size =", n), col=n)
+}
+```
+
+```{r}
+# Distribution approaches normal as sample size increases. Key concept and interesting distinction from discrete uniform.
+```
